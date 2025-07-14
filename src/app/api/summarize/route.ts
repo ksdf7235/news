@@ -1,26 +1,28 @@
-import { OpenAI } from 'openai';
+// src/app/api/summarize/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { fetchArticleContent } from '@/lib/fetch-article';
+import { summarizeArticle } from '@/lib/summary';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+export async function POST(req: NextRequest) {
+  try {
+    const { url } = await req.json();
+    
 
-export async function summarizeArticle(content: string): Promise<string> {
-  const prompt = `
-다음은 뉴스 기사 본문입니다. 이 내용을 핵심만 간단하게 요약해주세요 (3줄 이내):
+    if (!url) {
+      return NextResponse.json({ error: 'URL이 필요합니다.' }, { status: 400 });
+    }
 
-"${content}"
-  `;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4', // 또는 gpt-3.5-turbo
-    messages: [
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-    temperature: 0.7,
-  });
+    const content = await fetchArticleContent(url);
+    const summary = await summarizeArticle(content);
 
-  return response.choices[0].message.content ?? '요약 실패';
+
+
+    return NextResponse.json({ summary });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || '요약 중 오류가 발생했습니다.' },
+      { status: 500 }
+    );
+  }
 }
